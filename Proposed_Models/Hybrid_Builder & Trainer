@@ -1,0 +1,50 @@
+def build_hybrid(backbone_cls, name, img_size=IMG_SIZE, alpha=0.75, dropout=0.4):
+    img_inp = layers.Input(shape=(img_size, img_size, 3), name='image')
+    if backbone_cls is MobileNetV2:
+        bb = backbone_cls(include_top=False, weights='imagenet',
+                          input_tensor=img_inp, alpha=alpha)
+    else:  # EfficientNetB0 doesn't take alpha
+        bb = backbone_cls(include_top=False, weights='imagenet',
+                          input_tensor=img_inp)
+    bb.trainable = False
+    x = layers.GlobalAveragePooling2D()(bb.output)
+    x = layers.Dense(128, activation='relu',
+                     kernel_regularizer=regularizers.l2(1e-4))(x)
+    x = layers.Dropout(dropout)(x)
+
+    feat_inp = layers.Input(shape=(7,), name='handcrafted')
+    y = layers.BatchNormalization()(feat_inp)
+    y = layers.Dense(32, activation='relu',
+                     kernel_regularizer=regularizers.l2(1e-4))(y)
+    y = layers.Dropout(dropout / 2)(y)
+    y = layers.Dense(16, activation='relu')(y)
+
+    merged = layers.Concatenate()([x, y])
+    z = layers.Dense(64, activation='relu',
+                     kernel_regularizer=regularizers.l2(1e-4))(merged)
+    z = layers.Dropout(dropout)(z)
+    out = layers.Dense(1, activation='sigmoid')(z)
+
+    return models.Model([img_inp, feat_inp], out, name=name), bb
+
+
+def two_phase_train(model, bb, phase1_epochs=12, phase2_epochs=8):
+    # Phase 1: train head with frozen backbone
+    model.compile(optimizer=optimizers.Adam(1e-3), loss='binary_crossentropy',
+                  metrics=['accuracy', tf.keras.metrics.AUC(name='auc')])
+    h1 = model.fit(train_hybrid, validation_data=val_hybrid, epochs=phase1_epochs,
+                   callbacks=[cb_es(), cb_rlr()], verbose=0)
+    # Phase 2: fine-tune top 30 layers
+    bb.trainable = True
+    for L in bb.layers[:-30]:
+        L.trainable = False
+    model.compile(optimizer=optimizers.Adam(1e-5), loss='binary_crossentropy',
+                  metrics=['accuracy', tf.keras.metrics.AUC(name='auc')])
+    h2 = model.fit(train_hybrid, validation_data=val_hybrid, epochs=phase2_epochs,
+                   callbacks=[cb_es(), cb_rlr()], verbose=0)
+    merged = {}
+    for k in h1.history:
+        merged[k] = h1.history[k] + h2.history.get(k, [])
+    return merged, len(h1.history['loss'])
+
+print('✓ Hybrid builder & trainer ready')
