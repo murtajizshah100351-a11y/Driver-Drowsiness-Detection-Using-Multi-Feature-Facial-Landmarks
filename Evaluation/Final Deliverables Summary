@@ -1,0 +1,47 @@
+summary = {
+    'config': {
+        'seed': SEED, 'image_size': IMG_SIZE, 'batch_size': BATCH_SIZE,
+        'dataset_path': str(DATA_PATH), 'train_n': len(df_tr),
+        'val_n': len(df_val), 'test_n': len(df_test),
+    },
+    'ensemble_weights': {'MobileNetV2': float(w_m), 'EfficientNetB0': float(w_e)},
+    'proposed_final_metrics': {k: float(v) for k, v in res_ens.items() if k != 'Model'},
+    'comparative_results':    comp_df.to_dict('records'),
+    'ablation_results':       ab_df.to_dict('records'),
+    'sota_comparison':        sota.to_dict('records'),
+}
+with open('final_summary.json', 'w') as f:
+    json.dump(summary, f, indent=2, default=str)
+
+print('═'*70)
+print('DELIVERABLES IN WORKING DIRECTORY')
+print('═'*70)
+files_ = [
+    ('proposed1_mobilenetv2.keras',   'Trained Proposed Model 1'),
+    ('proposed2_efficientnetb0.keras','Trained Proposed Model 2'),
+    ('feats_*.npy',                   'Extracted handcrafted features'),
+    ('01_sample_images.png',          'Sample dataset images'),
+    ('02_landmark_viz.png',           'dlib landmark visualization'),
+    ('03_feature_distributions.png',  'Feature distributions per class'),
+    ('04_training_curves.png',        'Loss/accuracy/AUC curves'),
+    ('05_comparative_results.csv',    'All models metrics table'),
+    ('06_comparative_bars.png',       'Comparative bar chart'),
+    ('07_roc_all.png',                'ROC curves of all models'),
+    ('08_confusion_matrices.png',     'Confusion matrices — 3 proposed'),
+    ('09_sota_comparison.csv',        'SOTA comparison (literature)'),
+    ('10_sota_comparison.png',        'SOTA comparison chart'),
+    ('11_ablation_results.csv',       'Ablation study table'),
+    ('12_ablation.png',               'Ablation study visualization'),
+    ('final_summary.json',            'Machine-readable summary'),
+]
+for f, desc in files_:
+    print(f'  • {f:35s} — {desc}')
+
+print('\n' + '═'*70)
+print('FINAL PROPOSED ENSEMBLE — Test Set Metrics')
+print('═'*70)
+for k, v in res_ens.items():
+    if k != 'Model':
+        print(f'  {k:12s}: {v:.4f}')
+
+print('\n💡 In Colab: click the folder icon (📁) on the left sidebar to download files.')
