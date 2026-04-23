@@ -1,0 +1,15 @@
+# Confusion matrices — 3 proposed models side-by-side
+fig, axes = plt.subplots(1, 3, figsize=(15, 4.5))
+for ax, cm, title in [
+    (axes[0], cm_mnv2,  'Proposed 1: Hybrid MobileNetV2'),
+    (axes[1], cm_effb0, 'Proposed 2: Hybrid EfficientNetB0'),
+    (axes[2], confusion_matrix(y_true_test, (prob_ens >= 0.5).astype(int)),
+             'Proposed 3 (Final): Ensemble'),
+]:
+    sns.heatmap(cm, annot=True, fmt='d', cmap='Blues',
+                xticklabels=['Alert','Drowsy'], yticklabels=['Alert','Drowsy'],
+                ax=ax, cbar=False)
+    ax.set_title(title, fontsize=10); ax.set_xlabel('Predicted'); ax.set_ylabel('True')
+plt.tight_layout()
+plt.savefig('08_confusion_matrices.png', dpi=100, bbox_inches='tight')
+plt.show()
