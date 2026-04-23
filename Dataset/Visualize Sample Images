@@ -1,0 +1,15 @@
+fig, axes = plt.subplots(2, 5, figsize=(15, 6))
+for col, lbl in enumerate([0, 1]):
+    samples = df_tr[df_tr['label'] == lbl].sample(5, random_state=SEED)
+    for i, (_, row) in enumerate(samples.iterrows()):
+        img = cv2.imread(row['filepath'])
+        if img is not None:
+            img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            axes[col, i].imshow(img)
+        axes[col, i].set_title('Alert' if lbl == 0 else 'Drowsy',
+                                color='green' if lbl == 0 else 'red')
+        axes[col, i].axis('off')
+plt.suptitle('Sample Training Images', fontsize=14)
+plt.tight_layout()
+plt.savefig('01_sample_images.png', dpi=100, bbox_inches='tight')
+plt.show()
