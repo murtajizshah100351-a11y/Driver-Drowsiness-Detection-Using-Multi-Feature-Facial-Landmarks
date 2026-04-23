@@ -1,0 +1,25 @@
+import kagglehub
+
+# Primary: Drowsiness dataset with drowsy/non-drowsy labels on full driver faces
+DATA_PATH = None
+for ds_name in ['dheerajperumandla/drowsiness-dataset',
+                'banudeep/nitymed',
+                'serenaraju/yawn-eye-dataset-new']:
+    try:
+        DATA_PATH = kagglehub.dataset_download(ds_name)
+        print(f'✓ Downloaded {ds_name} → {DATA_PATH}')
+        break
+    except Exception as e:
+        print(f'✗ {ds_name} failed: {str(e)[:100]}')
+
+if DATA_PATH is None:
+    raise RuntimeError('All dataset downloads failed. Check internet connection.')
+
+# Inventory the structure
+print('\n--- Dataset structure ---')
+for root, dirs, files in os.walk(DATA_PATH):
+    depth = root.replace(DATA_PATH, '').count(os.sep)
+    if depth <= 2:
+        indent = '  ' * depth
+        img_count = len([f for f in files if f.lower().endswith(('.jpg','.jpeg','.png'))])
+        print(f'{indent}{os.path.basename(root)}/  [{img_count} images]')
