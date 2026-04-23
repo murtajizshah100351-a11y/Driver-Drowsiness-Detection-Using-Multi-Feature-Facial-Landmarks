@@ -1,0 +1,18 @@
+# Weighted average (optional): weight by validation AUC
+val_prob_m = model_mnv2.predict(val_hybrid, verbose=0).ravel()
+val_prob_e = model_effb0.predict(val_hybrid, verbose=0).ravel()
+y_val = df_val['label'].values
+w_m = roc_auc_score(y_val, val_prob_m)
+w_e = roc_auc_score(y_val, val_prob_e)
+w_sum = w_m + w_e
+w_m, w_e = w_m / w_sum, w_e / w_sum
+print(f'Ensemble weights: MobileNetV2={w_m:.3f}, EfficientNetB0={w_e:.3f}')
+
+prob_ens = w_m * prob_mnv2 + w_e * prob_effb0
+res_ens, cm_ens = full_metrics(y_true_test, prob_ens, 'Proposed 3 (Final): Ensemble')
+ALL_RESULTS.append(res_ens); ALL_PROBS['Ensemble (Final)'] = prob_ens
+
+print(f"\nFINAL ENSEMBLE — Test Set:")
+for k, v in res_ens.items():
+    if k != 'Model':
+        print(f'  {k:12s}: {v:.4f}')
