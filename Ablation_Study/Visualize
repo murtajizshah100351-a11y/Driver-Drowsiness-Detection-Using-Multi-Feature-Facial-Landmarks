@@ -1,0 +1,34 @@
+ab_df = pd.DataFrame(ablations).round(4)
+print('═'*95)
+print('ABLATION STUDY')
+print('═'*95)
+print(ab_df.to_string(index=False))
+ab_df.to_csv('11_ablation_results.csv', index=False)
+
+full_acc = ab_df.iloc[0]['Accuracy']
+full_f1  = ab_df.iloc[0]['F1']
+print('\n--- Performance drop when removing each component ---')
+for _, r in ab_df.iterrows():
+    if r['Config'].startswith('A.'): continue
+    print(f"{r['Config']:30s}  ΔAcc={r['Accuracy']-full_acc:+.4f}  ΔF1={r['F1']-full_f1:+.4f}")
+
+# Visualize
+fig, axes = plt.subplots(1, 2, figsize=(15, 5))
+metrics_ab = ['Accuracy', 'Precision', 'Recall', 'F1', 'AUC-ROC']
+x_ab = np.arange(len(ab_df))
+w_ab = 0.16
+for i, m in enumerate(metrics_ab):
+    axes[0].bar(x_ab + i * w_ab, ab_df[m], w_ab, label=m)
+axes[0].set_xticks(x_ab + w_ab * 2)
+axes[0].set_xticklabels([c[:3] for c in ab_df['Config']], rotation=0)
+axes[0].set_ylim(0, 1.05); axes[0].legend(fontsize=8)
+axes[0].set_title('Ablation — all metrics'); axes[0].grid(axis='y', alpha=0.3)
+
+deltas = [(r['Accuracy'] - full_acc) for _, r in ab_df.iterrows()]
+colors_d = ['gray' if d == 0 else ('red' if d < 0 else 'green') for d in deltas]
+axes[1].barh(ab_df['Config'], deltas, color=colors_d)
+axes[1].axvline(0, color='black'); axes[1].set_xlabel('Δ Accuracy vs Full')
+axes[1].set_title('Contribution of Each Component'); axes[1].grid(axis='x', alpha=0.3)
+plt.tight_layout()
+plt.savefig('12_ablation.png', dpi=100, bbox_inches='tight')
+plt.show()
