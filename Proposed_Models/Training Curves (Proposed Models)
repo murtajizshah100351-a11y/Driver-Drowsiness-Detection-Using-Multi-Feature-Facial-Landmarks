@@ -1,0 +1,38 @@
+fig, axes = plt.subplots(2, 3, figsize=(16, 9))
+
+for col, (hist, name, ft_epoch) in enumerate([
+    (hist_mnv2,  'MobileNetV2',     ft_start_m),
+    (hist_effb0, 'EfficientNetB0',  ft_start_e),
+]):
+    ax = axes[0, col]
+    ax.plot(hist['loss'], label='train', lw=2)
+    ax.plot(hist['val_loss'], label='val', lw=2)
+    ax.axvline(ft_epoch - 0.5, ls='--', color='gray', alpha=0.6)
+    ax.text(ft_epoch, max(hist['val_loss'])*0.9, 'fine-tune', fontsize=9)
+    ax.set_title(f'{name} — Loss'); ax.set_xlabel('Epoch')
+    ax.legend(); ax.grid(alpha=0.3)
+
+    ax = axes[1, col]
+    ax.plot(hist['accuracy'], label='train acc', lw=2)
+    ax.plot(hist['val_accuracy'], label='val acc', lw=2)
+    ax.axvline(ft_epoch - 0.5, ls='--', color='gray', alpha=0.6)
+    ax.set_title(f'{name} — Accuracy'); ax.set_xlabel('Epoch')
+    ax.legend(); ax.grid(alpha=0.3)
+
+# AUC comparison panel
+ax = axes[0, 2]
+ax.plot(hist_mnv2['val_auc'], label='MobileNetV2 val AUC', lw=2)
+ax.plot(hist_effb0['val_auc'], label='EfficientNetB0 val AUC', lw=2)
+ax.set_title('Validation AUC Comparison'); ax.set_xlabel('Epoch')
+ax.legend(); ax.grid(alpha=0.3)
+
+# Combined val loss
+ax = axes[1, 2]
+ax.plot(hist_mnv2['val_loss'], label='MobileNetV2 val loss', lw=2)
+ax.plot(hist_effb0['val_loss'], label='EfficientNetB0 val loss', lw=2)
+ax.set_title('Validation Loss Comparison'); ax.set_xlabel('Epoch')
+ax.legend(); ax.grid(alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('04_training_curves.png', dpi=100, bbox_inches='tight')
+plt.show()
