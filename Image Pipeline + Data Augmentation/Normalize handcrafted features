@@ -1,0 +1,55 @@
+IMG_SIZE   = 128
+BATCH_SIZE = 32
+
+# Normalize handcrafted features using train stats only
+scaler = StandardScaler()
+feats_tr_n  = scaler.fit_transform(feats_tr).astype(np.float32)
+feats_val_n = scaler.transform(feats_val).astype(np.float32)
+feats_te_n  = scaler.transform(feats_te).astype(np.float32)
+
+
+def _load_img(fp, augment=False):
+    img = tf.io.read_file(fp)
+    img = tf.image.decode_image(img, channels=3, expand_animations=False)
+    img = tf.image.resize(img, [IMG_SIZE, IMG_SIZE])
+    img = tf.cast(img, tf.float32) / 255.0
+    if augment:
+        img = tf.image.random_flip_left_right(img)
+        img = tf.image.random_brightness(img, 0.2)
+        img = tf.image.random_contrast(img, 0.85, 1.15)
+        img = tf.clip_by_value(img, 0.0, 1.0)
+    return img
+
+
+def make_hybrid_ds(df, feats_norm, augment=False, shuffle=False):
+    ds = tf.data.Dataset.from_tensor_slices(
+        (df['filepath'].values, feats_norm, df['label'].values.astype(np.float32))
+    )
+    if shuffle:
+        ds = ds.shuffle(min(len(df), 2000), seed=SEED)
+    ds = ds.map(lambda fp, ft, lb: ((_load_img(fp, augment), ft), lb),
+                num_parallel_calls=tf.data.AUTOTUNE)
+    return ds.batch(BATCH_SIZE).prefetch(tf.data.AUTOTUNE)
+
+
+def make_image_ds(df, augment=False, shuffle=False):
+    ds = tf.data.Dataset.from_tensor_slices(
+        (df['filepath'].values, df['label'].values.astype(np.float32))
+    )
+    if shuffle:
+        ds = ds.shuffle(min(len(df), 2000), seed=SEED)
+    ds = ds.map(lambda fp, lb: (_load_img(fp, augment), lb),
+                num_parallel_calls=tf.data.AUTOTUNE)
+    return ds.batch(BATCH_SIZE).prefetch(tf.data.AUTOTUNE)
+
+
+train_hybrid = make_hybrid_ds(df_tr,  feats_tr_n,  augment=True,  shuffle=True)
+val_hybrid   = make_hybrid_ds(df_val, feats_val_n, augment=False, shuffle=False)
+test_hybrid  = make_hybrid_ds(df_test,feats_te_n,  augment=False, shuffle=False)
+train_img    = make_image_ds(df_tr,  augment=True,  shuffle=True)
+val_img      = make_image_ds(df_val, augment=False, shuffle=False)
+test_img     = make_image_ds(df_test,augment=False, shuffle=False)
+
+# Verify
+for (imgs, ft), lbls in train_hybrid.take(1):
+    print(f'Image batch: {imgs.shape}  |  Feature batch: {ft.shape}  |  Labels: {lbls.shape}')
