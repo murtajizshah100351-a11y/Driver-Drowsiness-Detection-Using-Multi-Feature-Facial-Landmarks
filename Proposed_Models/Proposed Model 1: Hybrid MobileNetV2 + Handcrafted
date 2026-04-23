@@ -1,0 +1,14 @@
+print('═'*60)
+print('PROPOSED MODEL 1: Hybrid MobileNetV2 + Handcrafted')
+print('═'*60)
+t0 = time.time()
+model_mnv2, bb_mnv2 = build_hybrid(MobileNetV2, 'HybridMobileNetV2')
+print(f'Parameters: {model_mnv2.count_params():,}')
+hist_mnv2, ft_start_m = two_phase_train(model_mnv2, bb_mnv2)
+print(f'Training done in {time.time()-t0:.1f}s')
+
+prob_mnv2 = model_mnv2.predict(test_hybrid, verbose=0).ravel()
+res_mnv2, cm_mnv2 = full_metrics(y_true_test, prob_mnv2, 'Proposed 1: Hybrid MobileNetV2')
+ALL_RESULTS.append(res_mnv2); ALL_PROBS['Hybrid MobileNetV2'] = prob_mnv2
+print(f"Test: Acc={res_mnv2['Accuracy']:.4f}  F1={res_mnv2['F1']:.4f}  AUC={res_mnv2['AUC-ROC']:.4f}")
+model_mnv2.save('proposed1_mobilenetv2.keras')
