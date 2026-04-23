@@ -1,0 +1,7 @@
+print('Training SVM...')
+svm = SVC(kernel='rbf', C=1.0, probability=True, class_weight='balanced', random_state=SEED)
+svm.fit(feats_tr_n, df_tr['label'])
+svm_prob = svm.predict_proba(feats_te_n)[:, 1]
+res, _ = full_metrics(y_true_test, svm_prob, 'SVM (HC)')
+ALL_RESULTS.append(res); ALL_PROBS['SVM'] = svm_prob
+print(f"  Acc={res['Accuracy']:.4f}  F1={res['F1']:.4f}  AUC={res['AUC-ROC']:.4f}")
