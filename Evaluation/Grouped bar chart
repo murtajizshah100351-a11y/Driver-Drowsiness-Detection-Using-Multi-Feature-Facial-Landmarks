@@ -1,0 +1,22 @@
+# Grouped bar chart
+metrics_plot = ['Accuracy', 'Precision', 'Recall', 'F1', 'Specificity', 'AUC-ROC']
+fig, ax = plt.subplots(figsize=(15, 6))
+x = np.arange(len(metrics_plot))
+width = 0.12
+palette = ['#a0c4ff', '#bdb2ff', '#ffc6ff', '#ffd6a5', '#caffbf', '#9bf6ff', '#ff9aa2']
+for i, r in enumerate(ALL_RESULTS):
+    vals = [r[m] for m in metrics_plot]
+    highlight = 'Proposed 3' in r['Model']
+    ax.bar(x + i*width, vals, width, label=r['Model'],
+           color='#2ecc71' if highlight else palette[i % len(palette)],
+           edgecolor='black' if highlight else 'none',
+           linewidth=2 if highlight else 0)
+ax.set_xticks(x + width*(len(ALL_RESULTS)-1)/2)
+ax.set_xticklabels(metrics_plot)
+ax.set_ylabel('Score'); ax.set_ylim(0, 1.05)
+ax.set_title('All Models Comparison (green = final proposed ensemble)')
+ax.legend(loc='lower right', fontsize=8, ncol=2)
+ax.grid(axis='y', alpha=0.3)
+plt.tight_layout()
+plt.savefig('06_comparative_bars.png', dpi=100, bbox_inches='tight')
+plt.show()
