@@ -1,0 +1,32 @@
+# Config D: w/o Augmentation — retrain hybrid without augmentation
+print('Ablation D: Training hybrid WITHOUT augmentation...')
+train_noaug = make_hybrid_ds(df_tr,  feats_tr_n,  augment=False, shuffle=True)
+val_noaug   = make_hybrid_ds(df_val, feats_val_n, augment=False, shuffle=False)
+
+abl_model_d, abl_bb_d = build_hybrid(MobileNetV2, 'Ablation_NoAug')
+abl_model_d.compile(optimizer=optimizers.Adam(1e-3), loss='binary_crossentropy',
+                    metrics=['accuracy', tf.keras.metrics.AUC(name='auc')])
+abl_model_d.fit(train_noaug, validation_data=val_noaug, epochs=12,
+                callbacks=[cb_es(), cb_rlr()], verbose=0)
+abl_bb_d.trainable = True
+for L in abl_bb_d.layers[:-30]: L.trainable = False
+abl_model_d.compile(optimizer=optimizers.Adam(1e-5), loss='binary_crossentropy',
+                    metrics=['accuracy', tf.keras.metrics.AUC(name='auc')])
+abl_model_d.fit(train_noaug, validation_data=val_noaug, epochs=8,
+                callbacks=[cb_es(), cb_rlr()], verbose=0)
+prob_d = abl_model_d.predict(test_hybrid, verbose=0).ravel()
+res_d, _ = full_metrics(y_true_test, prob_d, 'Ablation NoAug')
+ablations.append({'Config': 'D. w/o Augmentation', **{k: v for k, v in res_d.items() if k != 'Model'}})
+print(f"  Acc={res_d['Accuracy']:.4f}  F1={res_d['F1']:.4f}")
+
+# Config E: w/o Fine-tuning — train hybrid with frozen backbone only
+print('Ablation E: Training hybrid WITHOUT fine-tuning...')
+abl_model_e, abl_bb_e = build_hybrid(MobileNetV2, 'Ablation_NoFT')
+abl_model_e.compile(optimizer=optimizers.Adam(1e-3), loss='binary_crossentropy',
+                    metrics=['accuracy', tf.keras.metrics.AUC(name='auc')])
+abl_model_e.fit(train_hybrid, validation_data=val_hybrid, epochs=20,
+                callbacks=[cb_es(), cb_rlr()], verbose=0)
+prob_e = abl_model_e.predict(test_hybrid, verbose=0).ravel()
+res_e, _ = full_metrics(y_true_test, prob_e, 'Ablation NoFT')
+ablations.append({'Config': 'E. w/o Fine-tuning', **{k: v for k, v in res_e.items() if k != 'Model'}})
+print(f"  Acc={res_e['Accuracy']:.4f}  F1={res_e['F1']:.4f}")
