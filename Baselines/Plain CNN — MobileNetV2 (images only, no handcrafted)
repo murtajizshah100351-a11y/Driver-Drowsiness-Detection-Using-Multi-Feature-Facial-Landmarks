@@ -1,0 +1,24 @@
+def build_plain_cnn():
+    inp = layers.Input(shape=(IMG_SIZE, IMG_SIZE, 3))
+    bb = MobileNetV2(include_top=False, weights='imagenet',
+                     input_tensor=inp, alpha=0.75)
+    bb.trainable = False
+    x = layers.GlobalAveragePooling2D()(bb.output)
+    x = layers.Dense(128, activation='relu')(x)
+    x = layers.Dropout(0.4)(x)
+    out = layers.Dense(1, activation='sigmoid')(x)
+    return models.Model(inp, out, name='PlainCNN'), bb
+
+cb_es = lambda p=5: callbacks.EarlyStopping(monitor='val_loss', patience=p, restore_best_weights=True, verbose=0)
+cb_rlr = lambda: callbacks.ReduceLROnPlateau(monitor='val_loss', factor=0.5, patience=3, min_lr=1e-6, verbose=0)
+
+print('Training Plain CNN...')
+plain_model, _ = build_plain_cnn()
+plain_model.compile(optimizer=optimizers.Adam(1e-3), loss='binary_crossentropy',
+                    metrics=['accuracy', tf.keras.metrics.AUC(name='auc')])
+plain_hist = plain_model.fit(train_img, validation_data=val_img, epochs=12,
+                              callbacks=[cb_es(), cb_rlr()], verbose=0)
+plain_prob = plain_model.predict(test_img, verbose=0).ravel()
+res, _ = full_metrics(y_true_test, plain_prob, 'Plain CNN (MobileNetV2)')
+ALL_RESULTS.append(res); ALL_PROBS['Plain CNN'] = plain_prob
+print(f"  Acc={res['Accuracy']:.4f}  F1={res['F1']:.4f}  AUC={res['AUC-ROC']:.4f}")
