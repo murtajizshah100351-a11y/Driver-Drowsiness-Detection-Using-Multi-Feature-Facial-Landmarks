@@ -1,0 +1,12 @@
+ablations = []
+
+# Config A: FULL (= Proposed 1)
+ablations.append({'Config': 'A. Full (CNN+HC+Aug+FT)', **{k: v for k, v in res_mnv2.items() if k != 'Model'}})
+
+# Config B: w/o handcrafted = Plain CNN (already trained)
+plain_res_dict = next(r for r in ALL_RESULTS if 'Plain CNN' in r['Model'])
+ablations.append({'Config': 'B. w/o Handcrafted',      **{k: v for k, v in plain_res_dict.items() if k != 'Model'}})
+
+# Config C: w/o CNN = MLP on handcrafted only (already trained)
+mlp_res_dict = next(r for r in ALL_RESULTS if 'MLP' in r['Model'])
+ablations.append({'Config': 'C. w/o CNN Branch',       **{k: v for k, v in mlp_res_dict.items() if k != 'Model'}})
