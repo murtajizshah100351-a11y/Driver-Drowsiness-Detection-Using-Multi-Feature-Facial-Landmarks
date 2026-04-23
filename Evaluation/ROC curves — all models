@@ -1,0 +1,14 @@
+# ROC curves — all models
+plt.figure(figsize=(9, 8))
+for name, prob in ALL_PROBS.items():
+    fpr, tpr, _ = roc_curve(y_true_test, prob)
+    auc = roc_auc_score(y_true_test, prob)
+    lw = 3 if 'Ensemble' in name else 1.5
+    plt.plot(fpr, tpr, lw=lw, label=f'{name} (AUC={auc:.4f})')
+plt.plot([0, 1], [0, 1], 'k--', alpha=0.4)
+plt.xlabel('False Positive Rate'); plt.ylabel('True Positive Rate')
+plt.title('ROC Curves — All Models on Test Set')
+plt.legend(loc='lower right'); plt.grid(alpha=0.3)
+plt.tight_layout()
+plt.savefig('07_roc_all.png', dpi=100, bbox_inches='tight')
+plt.show()
