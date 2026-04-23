@@ -1,0 +1,42 @@
+import os, sys, random, time, json, warnings, math
+from pathlib import Path
+from collections import Counter
+
+import numpy as np
+import pandas as pd
+import matplotlib.pyplot as plt
+import seaborn as sns
+import cv2
+from PIL import Image
+from tqdm.auto import tqdm
+
+import tensorflow as tf
+from tensorflow.keras import layers, models, callbacks, optimizers, regularizers
+from tensorflow.keras.applications import MobileNetV2, EfficientNetB0
+
+from sklearn.model_selection import train_test_split
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.svm import SVC
+from sklearn.neural_network import MLPClassifier
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import (accuracy_score, precision_score, recall_score,
+                             f1_score, roc_auc_score, confusion_matrix,
+                             classification_report, roc_curve, brier_score_loss)
+
+import dlib
+
+warnings.filterwarnings('ignore')
+
+# Reproducibility
+SEED = 42
+random.seed(SEED); np.random.seed(SEED); tf.random.set_seed(SEED)
+os.environ['PYTHONHASHSEED'] = str(SEED)
+
+# GPU
+gpus = tf.config.list_physical_devices('GPU')
+if gpus:
+    for g in gpus: tf.config.experimental.set_memory_growth(g, True)
+    print(f'✓ GPU: {gpus[0].name}')
+else:
+    print('⚠ No GPU — enable T4: Runtime → Change runtime type → T4 GPU')
+print(f'TF {tf.__version__}  |  dlib {dlib.__version__}  |  seed {SEED}')
