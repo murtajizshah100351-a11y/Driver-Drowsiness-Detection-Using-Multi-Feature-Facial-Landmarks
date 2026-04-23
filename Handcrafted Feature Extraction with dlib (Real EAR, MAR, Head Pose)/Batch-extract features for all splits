@@ -1,0 +1,26 @@
+# Batch-extract features for all splits (the slow step — runs once)
+def batch_extract(df, name):
+    feats = np.zeros((len(df), 7), dtype=np.float32)
+    det = np.zeros(len(df), dtype=bool)
+    for i, row in tqdm(df.iterrows(), total=len(df), desc=f'Extracting {name}'):
+        f, ok = extract_features(row['filepath'])
+        feats[i] = f
+        det[i] = ok
+    print(f'  {name}: faces detected in {det.sum()}/{len(df)} ({100*det.mean():.1f}%)')
+    return feats, det
+
+feats_tr,  det_tr  = batch_extract(df_tr,  'train')
+feats_val, det_val = batch_extract(df_val, 'val')
+feats_te,  det_te  = batch_extract(df_test, 'test')
+
+np.save('feats_tr.npy',  feats_tr)
+np.save('feats_val.npy', feats_val)
+np.save('feats_te.npy',  feats_te)
+
+print('\n--- Mean features per class (train, faces detected only) ---')
+feat_names = ['EAR_L', 'EAR_R', 'EAR_avg', 'MAR', 'Pitch', 'Yaw', 'Roll']
+for lbl, name in [(0, 'Alert '), (1, 'Drowsy')]:
+    m = (df_tr.label.values == lbl) & det_tr
+    if m.sum() > 0:
+        mu = feats_tr[m].mean(axis=0)
+        print(f'{name}: ' + '  '.join([f'{n}={v:+.3f}' for n, v in zip(feat_names, mu)]))
