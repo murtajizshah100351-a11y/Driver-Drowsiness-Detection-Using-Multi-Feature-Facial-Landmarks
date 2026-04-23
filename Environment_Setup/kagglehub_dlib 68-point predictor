@@ -1,0 +1,10 @@
+# Install only what Colab doesn't ship. dlib is pre-installed on Colab.
+!pip install -q kagglehub 2>&1 | tail -1
+print('✓ kagglehub installed')
+
+# Download dlib's 68-point facial landmark predictor
+import os
+if not os.path.exists('shape_predictor_68_face_landmarks.dat'):
+    !wget -q http://dlib.net/files/shape_predictor_68_face_landmarks.dat.bz2
+    !bzip2 -d shape_predictor_68_face_landmarks.dat.bz2
+print('✓ dlib 68-point predictor ready')
