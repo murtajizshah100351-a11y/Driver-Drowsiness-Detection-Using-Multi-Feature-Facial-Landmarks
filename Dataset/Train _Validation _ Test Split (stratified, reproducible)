@@ -1,0 +1,11 @@
+# 70% train, 15% val, 15% test — stratified
+df_trainval, df_test = train_test_split(df_all, test_size=0.15,
+                                         stratify=df_all['label'], random_state=SEED)
+df_tr, df_val = train_test_split(df_trainval, test_size=0.1765,
+                                  stratify=df_trainval['label'], random_state=SEED)
+df_tr   = df_tr.reset_index(drop=True)
+df_val  = df_val.reset_index(drop=True)
+df_test = df_test.reset_index(drop=True)
+
+for name, df in [('Train', df_tr), ('Val', df_val), ('Test', df_test)]:
+    print(f'{name:5s}: {len(df):>5}  (Alert: {(df.label==0).sum()}, Drowsy: {(df.label==1).sum()})')
