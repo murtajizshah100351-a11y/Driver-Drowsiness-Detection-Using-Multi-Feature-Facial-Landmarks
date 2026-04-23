@@ -1,0 +1,13 @@
+# Feature distributions by class — shows features DO discriminate
+fig, axes = plt.subplots(2, 4, figsize=(16, 7))
+for i, fname in enumerate(feat_names):
+    ax = axes[i // 4, i % 4]
+    for lbl, name, c in [(0, 'Alert', 'green'), (1, 'Drowsy', 'red')]:
+        m = (df_tr.label.values == lbl) & det_tr
+        ax.hist(feats_tr[m, i], bins=40, alpha=0.55, label=name, color=c, density=True)
+    ax.set_title(fname); ax.legend(fontsize=8)
+axes[1, 3].axis('off')
+plt.suptitle('Handcrafted Feature Distributions — Alert vs Drowsy', fontsize=13)
+plt.tight_layout()
+plt.savefig('03_feature_distributions.png', dpi=100, bbox_inches='tight')
+plt.show()
