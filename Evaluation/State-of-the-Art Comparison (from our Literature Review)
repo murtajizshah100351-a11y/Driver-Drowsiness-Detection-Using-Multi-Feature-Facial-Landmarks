@@ -1,0 +1,25 @@
+sota = pd.DataFrame([
+    {'Paper': 'P1 CDLM Hybrid (2024)',             'Method': 'HOG+PCA+CNN+XGBoost',        'Accuracy': 0.996},
+    {'Paper': 'P2 TCDCN + KNN (2022)',             'Method': 'EAR+MAR+PERCLOS + KNN',       'Accuracy': 0.951},
+    {'Paper': 'P3 Adaptive Threshold (2025)',      'Method': 'Dlib + Adaptive ECR/MAR',     'Accuracy': 0.982},
+    {'Paper': 'P4 Adaptive ECR + RF (2025)',       'Method': 'Dlib + Adaptive ECR + RF',    'Accuracy': 0.905},
+    {'Paper': 'P5 DrowsyDetectNet (2024)',         'Method': 'Shallow CNN',                 'Accuracy': 0.992},
+    {'Paper': 'P6 MCNN + FSA (2023)',              'Method': 'DTCWT+WHT+FSA+MCNN',          'Accuracy': 0.984},
+    {'Paper': 'P7 Multi-feature RF (2023)',        'Method': 'EAR+MAR+Head + RF',           'Accuracy': 0.990},
+    {'Paper': 'P8 VGG16+LGBM (2024)',              'Method': 'Transfer Learning',           'Accuracy': 0.990},
+    {'Paper': '★ Ours — Ensemble (Final)',         'Method': 'Dlib + CNN(MNv2+EffB0) Fusion', 'Accuracy': res_ens['Accuracy']},
+])
+sota = sota.sort_values('Accuracy').reset_index(drop=True)
+print(sota.to_string(index=False))
+sota.to_csv('09_sota_comparison.csv', index=False)
+
+plt.figure(figsize=(11, 6))
+colors = ['#e74c3c' if '★' in p else '#3498db' for p in sota['Paper']]
+plt.barh(sota['Paper'], sota['Accuracy'], color=colors)
+for i, v in enumerate(sota['Accuracy']):
+    plt.text(v + 0.003, i, f'{v:.3f}', va='center', fontsize=9)
+plt.xlabel('Accuracy'); plt.xlim(0.85, 1.02)
+plt.title('SOTA Comparison (our ensemble highlighted in red)')
+plt.tight_layout()
+plt.savefig('10_sota_comparison.png', dpi=100, bbox_inches='tight')
+plt.show()
