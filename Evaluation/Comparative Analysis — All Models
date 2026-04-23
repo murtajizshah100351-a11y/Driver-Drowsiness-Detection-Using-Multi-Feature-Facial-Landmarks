@@ -1,0 +1,13 @@
+comp_df = pd.DataFrame(ALL_RESULTS).round(4)
+print('═'*100)
+print('COMPARATIVE ANALYSIS — All Models on Unseen Test Set')
+print('═'*100)
+print(comp_df.to_string(index=False))
+comp_df.to_csv('05_comparative_results.csv', index=False)
+
+# Highlight: how much proposed models beat baselines
+best_baseline = max([r['Accuracy'] for r in ALL_RESULTS if 'Proposed' not in r['Model']])
+best_proposed = max([r['Accuracy'] for r in ALL_RESULTS if 'Proposed' in r['Model']])
+print(f'\n🎯 Best baseline accuracy: {best_baseline:.4f}')
+print(f'🎯 Best proposed accuracy: {best_proposed:.4f}')
+print(f'📈 Improvement:            {(best_proposed - best_baseline)*100:+.2f} %-points')
