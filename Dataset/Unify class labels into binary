@@ -1,0 +1,48 @@
+# Unify class labels into binary: drowsy (1) vs alert (0)
+DROWSY_NAMES = {'drowsy', 'Drowsy', 'drowsy person', 'closed', 'Closed',
+                'yawn', 'Yawn', 'Fatigue Subjects', 'fatigue'}
+ALERT_NAMES  = {'non_drowsy', 'Non Drowsy', 'non drowsy', 'natural', 'Natural',
+                'open', 'Open', 'no_yawn', 'No_yawn', 'Active Subjects', 'active', 'alert'}
+
+def classify_folder(name):
+    nm = name.strip().lower().replace('_', ' ')
+    if any(d.lower().replace('_', ' ') in nm or nm in d.lower().replace('_', ' ')
+           for d in DROWSY_NAMES):
+        return 1
+    if any(a.lower().replace('_', ' ') in nm or nm in a.lower().replace('_', ' ')
+           for a in ALERT_NAMES):
+        return 0
+    return None
+
+def scan_dataset(base):
+    rows = []
+    for root, dirs, files in os.walk(base):
+        folder = os.path.basename(root)
+        lbl = classify_folder(folder)
+        if lbl is None:
+            continue
+        for f in files:
+            if f.lower().endswith(('.jpg', '.jpeg', '.png')):
+                rows.append({
+                    'filepath': os.path.join(root, f),
+                    'label': lbl,
+                    'folder': folder,
+                })
+    return pd.DataFrame(rows)
+
+df_all = scan_dataset(DATA_PATH)
+df_all = df_all.sample(frac=1, random_state=SEED).reset_index(drop=True)
+
+# If dataset is very large, subsample for faster training (optional — remove for full run)
+MAX_PER_CLASS = 1500  # cap per class to keep training reasonable on Colab free tier
+sub = []
+for lbl in [0, 1]:
+    dfl = df_all[df_all['label'] == lbl]
+    sub.append(dfl.sample(min(MAX_PER_CLASS, len(dfl)), random_state=SEED))
+df_all = pd.concat(sub).sample(frac=1, random_state=SEED).reset_index(drop=True)
+
+print(f'Total images: {len(df_all)}')
+print(f'  Alert (0):  {(df_all.label==0).sum()}')
+print(f'  Drowsy (1): {(df_all.label==1).sum()}')
+print(f'\nClass distribution by folder:')
+print(df_all.groupby(['folder', 'label']).size())
