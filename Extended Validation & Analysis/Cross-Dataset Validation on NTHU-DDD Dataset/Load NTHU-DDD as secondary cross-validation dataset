@@ -1,0 +1,56 @@
+# A2.1 — Load NTHU-DDD as secondary cross-validation dataset
+
+SEC_PATH = None
+SEC_NAME = None
+
+try:
+    SEC_PATH = kagglehub.dataset_download("samymesbah/nthu-dataset-ddd-multi-class")
+    SEC_NAME = "samymesbah/nthu-dataset-ddd-multi-class"
+    print(f'✓ Loaded secondary dataset: {SEC_NAME}')
+    print(f'   Path → {SEC_PATH}')
+    print('\n🎯 NTHU-DDD loaded — Cross-val dataset ')
+
+except Exception as e:
+    print(f'✗ NTHU-DDD failed: {str(e)[:100]}')
+    print('\n   Trying UTA-RLDD as fallback (P3)...')
+
+    # ── Fallback 1: UTA-RLDD  ────────────────────────────────────
+    try:
+        SEC_PATH = kagglehub.dataset_download("minhngt02/uta-rldd")
+        SEC_NAME = "minhngt02/uta-rldd"
+        print(f'✓ Loaded secondary dataset: {SEC_NAME}')
+        print(f'   Path → {SEC_PATH}')
+        print('\n🎯 UTA-RLDD loaded — supervisor-requested cross-val dataset (P3)')
+
+    except Exception as e2:
+        print(f'✗ UTA-RLDD failed: {str(e2)[:100]}')
+        print('\n   Trying remaining fallbacks...')
+
+        # ── Fallback 2: Other candidates ─────────────────────────────
+        FALLBACK_CANDIDATES = [
+            'serenaraju/yawn-eye-dataset-new',
+            'ismailnasri20/driver-drowsiness-dataset-ddd', # real-driver
+            'rakibuleceruet/drowsiness-prediction-dataset',# community
+        ]
+        for ds_name in FALLBACK_CANDIDATES:
+            # Skip if same as primary
+            short = ds_name.split('/')[-1].lower()
+            if short in str(DATA_PATH).lower():
+                print(f'  (skip {ds_name} — same as primary)')
+                continue
+            try:
+                SEC_PATH = kagglehub.dataset_download(ds_name)
+                SEC_NAME = ds_name
+                print(f'✓ Loaded fallback secondary: {ds_name}')
+                print(f'   Path → {SEC_PATH}')
+                break
+            except Exception as ef:
+                print(f'  ✗ {ds_name}: {str(ef)[:60]}')
+
+# ── Keep your original check exactly as it was ───────────────────────
+if SEC_PATH is None:
+    print('\n⚠️  No secondary Kaggle dataset is available in this environment.')
+    print('   Accept dataset license at:')
+    print('   → https://www.kaggle.com/datasets/samymesbah/nthu-dataset-ddd-multi-class')
+    print('   → https://www.kaggle.com/datasets/minhngt02/uta-rldd')
+    print('   Then re-run this cell.')
