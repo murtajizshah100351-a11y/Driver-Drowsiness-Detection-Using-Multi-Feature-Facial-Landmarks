@@ -1,0 +1,42 @@
+# A1.4 — Feature distribution shift (KS test, train vs test)
+from scipy.stats import ks_2samp
+
+print('═'*60)
+print('CHECK 4 — Feature distribution shift (Kolmogorov–Smirnov)')
+print('═'*60)
+print(f'{"Feature":<10s} {"KS stat":>10s} {"p-value":>10s} {"interpretation":>20s}')
+print('-'*55)
+ks_results = []
+for i, name in enumerate(feat_names):
+    a = feats_tr[det_tr,  i]
+    b = feats_te[det_te,  i]
+    if len(a) > 5 and len(b) > 5:
+        ks_stat, p = ks_2samp(a, b)
+        flag = 'shift' if p < 0.05 else 'OK'
+        ks_results.append({'feature': name, 'ks_stat': ks_stat, 'p_value': p, 'flag': flag})
+        print(f'{name:<10s} {ks_stat:>10.4f} {p:>10.4f} {flag:>20s}')
+
+n_shifted = sum(1 for r in ks_results if r['flag'] == 'shift')
+print()
+if n_shifted == 0:
+    print('✅  No statistically significant distribution shift in any feature → train and test are i.i.d.')
+else:
+    print(f'⚠️  {n_shifted}/{len(ks_results)} features show distribution shift (p<0.05).')
+    print('    Some shift is expected for any random split; large shifts warrant investigation.')
+
+leakage_summary = {
+    'exact_path_overlap': {'tr_val': len(dup_tr_val), 'tr_te': len(dup_tr_te), 'val_te': len(dup_val_te)},
+    'near_duplicate_test_frames': near_dup_count,
+    'near_duplicate_pct': float(100 * near_dup_count / max(1, len(hashes_te))),
+    'features_with_distribution_shift': n_shifted,
+    'ks_per_feature': ks_results,
+}
+print('\nVerdict on optimistic scores:')
+if (len(dup_tr_val) + len(dup_tr_te) + len(dup_val_te) == 0
+        and near_dup_count / len(hashes_te) < 0.05
+        and n_shifted < len(feat_names) // 2):
+    print('  → No exact path leakage, low near-duplicate rate, distribution stable.')
+    print('  → High scores look real for THIS dataset, but cross-dataset (§A2) is the')
+    print('    decisive test. Single-dataset accuracy alone over-states real-world skill.')
+else:
+    print('  → Some leakage signals — original numbers may be inflated. See §A2/A8 for unbiased estimates.')
