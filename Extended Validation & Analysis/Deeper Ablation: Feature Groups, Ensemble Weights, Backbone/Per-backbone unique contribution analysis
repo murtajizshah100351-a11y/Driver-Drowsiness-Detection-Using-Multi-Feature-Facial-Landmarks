@@ -1,0 +1,36 @@
+# A6.3 — Per-backbone unique contribution analysis
+# Items where backbones AGREE (correctly) vs DISAGREE
+pred_m = (prob_mnv2  >= 0.5).astype(int)
+pred_e = (prob_effb0 >= 0.5).astype(int)
+pred_g = y_true_test  # ground truth alias for readability
+
+both_right     = ((pred_m == pred_g) & (pred_e == pred_g)).sum()
+only_m_right   = ((pred_m == pred_g) & (pred_e != pred_g)).sum()
+only_e_right   = ((pred_m != pred_g) & (pred_e == pred_g)).sum()
+both_wrong     = ((pred_m != pred_g) & (pred_e != pred_g)).sum()
+total          = len(pred_g)
+
+print('═'*60)
+print('BACKBONE AGREEMENT BREAKDOWN (test set)')
+print('═'*60)
+print(f'Both right         : {both_right} ({100*both_right/total:.1f}%)')
+print(f'Only MobileNetV2   : {only_m_right} ({100*only_m_right/total:.1f}%)')
+print(f'Only EfficientNetB0: {only_e_right} ({100*only_e_right/total:.1f}%)')
+print(f'Both wrong         : {both_wrong} ({100*both_wrong/total:.1f}%)')
+
+unique_value = (only_m_right + only_e_right) / total
+print(f'\nUnique contribution (cases where exactly one backbone is right): {100*unique_value:.1f}%')
+print('This is the room the ensemble has to improve over either single model.')
+
+# Visualize as 2x2
+fig, ax = plt.subplots(figsize=(6, 5))
+mat = np.array([[both_right,   only_m_right],
+                [only_e_right, both_wrong]])
+sns.heatmap(mat, annot=True, fmt='d', cmap='Blues',
+            xticklabels=['EffB0 right', 'EffB0 wrong'],
+            yticklabels=['MNv2 right',  'MNv2 wrong'],
+            ax=ax, cbar=False, annot_kws={'size': 14})
+ax.set_title('Backbone agreement matrix (test set)')
+plt.tight_layout()
+plt.savefig('A6_backbone_agreement.png', dpi=100, bbox_inches='tight')
+plt.show()
