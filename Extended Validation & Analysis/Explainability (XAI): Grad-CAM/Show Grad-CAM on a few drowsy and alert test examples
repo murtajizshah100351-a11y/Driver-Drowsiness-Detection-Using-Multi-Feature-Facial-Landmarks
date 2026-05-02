@@ -1,0 +1,38 @@
+# A9.2 — Show Grad-CAM on a few drowsy and alert test examples
+import matplotlib.cm as cm
+
+# Pick 3 confident drowsy + 3 confident alert from the test set
+idx_drowsy = np.argsort(-prob_ens)[:3]
+idx_alert  = np.argsort(prob_ens)[:3]
+shown = list(idx_drowsy) + list(idx_alert)
+
+fig, axes = plt.subplots(2, 6, figsize=(18, 6.5))
+for col, idx in enumerate(shown):
+    path = df_test.iloc[idx]['filepath']
+    img  = _load_img(path, augment=False)
+    img_b = tf.expand_dims(img, 0)
+    feat_b = tf.convert_to_tensor(feats_te_n[idx:idx+1])
+    heat = grad_cam(model_mnv2, img_b, feat_b, layer_name=LAYER)
+
+    # Overlay
+    heat_resized = cv2.resize(heat, (IMG_SIZE, IMG_SIZE))
+    cmap = cm.get_cmap('jet')
+    heat_rgb = cmap(heat_resized)[..., :3]
+    overlay = 0.55 * img.numpy() + 0.45 * heat_rgb
+    overlay = np.clip(overlay, 0, 1)
+
+    axes[0, col].imshow(img.numpy())
+    axes[0, col].set_title(f'p(Drowsy)={prob_ens[idx]:.2f}  '
+                           f'true={"D" if y_true_test[idx]==1 else "A"}',
+                           fontsize=10,
+                           color='red' if y_true_test[idx]==1 else 'green')
+    axes[0, col].axis('off')
+
+    axes[1, col].imshow(overlay)
+    axes[1, col].set_title('Grad-CAM', fontsize=9)
+    axes[1, col].axis('off')
+
+plt.suptitle('Grad-CAM — what the CNN looks at when deciding drowsy/alert', fontsize=13)
+plt.tight_layout()
+plt.savefig('A9_gradcam.png', dpi=100, bbox_inches='tight')
+plt.show()
