@@ -1,0 +1,39 @@
+# A8.1 — Define camera/environment perturbations (numpy-based)
+def perturb_low_res(img):
+    h, w = img.shape[:2]
+    small = cv2.resize(img, (64, 64), interpolation=cv2.INTER_AREA)
+    return cv2.resize(small, (w, h), interpolation=cv2.INTER_LINEAR)
+
+def perturb_jpeg(img, quality=30):
+    arr = (img * 255).astype(np.uint8)
+    ok, buf = cv2.imencode('.jpg', cv2.cvtColor(arr, cv2.COLOR_RGB2BGR),
+                           [int(cv2.IMWRITE_JPEG_QUALITY), quality])
+    if not ok:
+        return img
+    decoded = cv2.imdecode(buf, cv2.IMREAD_COLOR)
+    return cv2.cvtColor(decoded, cv2.COLOR_BGR2RGB).astype(np.float32) / 255.0
+
+def perturb_warm_light(img):
+    out = img.copy()
+    out[..., 0] = np.clip(out[..., 0] * 1.20, 0, 1)
+    out[..., 2] = np.clip(out[..., 2] * 0.80, 0, 1)
+    return out
+
+def perturb_cool_light(img):
+    out = img.copy()
+    out[..., 0] = np.clip(out[..., 0] * 0.85, 0, 1)
+    out[..., 2] = np.clip(out[..., 2] * 1.15, 0, 1)
+    return out
+
+def perturb_in_car(img):
+    return perturb_warm_light(perturb_jpeg(perturb_low_res(img)))
+
+DOMAIN_PERTURBATIONS = {
+    'Clean (reference)':            None,
+    'Low-res camera':               perturb_low_res,
+    'JPEG compression q=30':        perturb_jpeg,
+    'Warm interior light':          perturb_warm_light,
+    'Cool daylight':                perturb_cool_light,
+    'Combined in-car pipeline':     perturb_in_car,
+}
+print(f'✓ {len(DOMAIN_PERTURBATIONS)} domain perturbations defined')
