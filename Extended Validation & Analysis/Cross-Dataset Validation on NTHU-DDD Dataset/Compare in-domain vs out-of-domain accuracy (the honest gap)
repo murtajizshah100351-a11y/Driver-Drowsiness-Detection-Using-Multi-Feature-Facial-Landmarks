@@ -1,0 +1,36 @@
+# A2.3 — Compare in-domain vs out-of-domain accuracy (the honest gap)
+if cross_results is not None:
+    in_acc  = res_ens['Accuracy']
+    out_acc = cross_results.iloc[-1]['Accuracy']  # ensemble row
+    drop    = in_acc - out_acc
+
+    print('═'*60)
+    print('IN-DOMAIN vs OUT-OF-DOMAIN — Final Ensemble')
+    print('═'*60)
+    print(f'In-domain  (primary test set)  : Acc = {in_acc:.4f}')
+    print(f'Out-of-domain ({SEC_NAME}): Acc = {out_acc:.4f}')
+    print(f'Generalization gap             : {drop:+.4f} ({100*drop:+.2f}%-pts)')
+    print()
+    if drop < 0.05:
+        print('✅  Small gap — the model genuinely generalizes.')
+    elif drop < 0.15:
+        print('⚠️  Moderate gap — typical for cross-dataset shift; acceptable but worth noting.')
+    else:
+        print('🔴  Large gap — the high in-domain score was largely dataset-specific.')
+
+
+    # Bar chart
+    fig, ax = plt.subplots(figsize=(8, 4))
+    bars = ax.bar(['In-domain\n(primary)', f'Out-of-domain\n({SEC_NAME.split("/")[-1]})'],
+                   [in_acc, out_acc], color=['#2ecc71', '#e67e22'])
+    for b, v in zip(bars, [in_acc, out_acc]):
+        ax.text(b.get_x()+b.get_width()/2, v+0.01, f'{v:.3f}', ha='center', fontsize=11, fontweight='bold')
+    ax.set_ylim(0, 1.05); ax.set_ylabel('Accuracy')
+    ax.set_title('Final Ensemble — In-domain vs Out-of-domain')
+    ax.grid(axis='y', alpha=0.3)
+    plt.tight_layout()
+    plt.savefig('A2_cross_dataset_gap.png', dpi=100, bbox_inches='tight')
+    plt.show()
+else:
+    print('Cross-dataset evaluation could not run automatically. The in-domain ensemble')
+    print(f'accuracy is {res_ens["Accuracy"]:.4f}; rerun §A2 with NTHU-DDD/UTA-RLDD when available.')
