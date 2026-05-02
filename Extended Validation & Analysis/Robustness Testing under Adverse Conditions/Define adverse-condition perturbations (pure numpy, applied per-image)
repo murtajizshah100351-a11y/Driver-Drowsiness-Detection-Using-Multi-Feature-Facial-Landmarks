@@ -1,0 +1,40 @@
+# A4.1 — Define adverse-condition perturbations (pure numpy, applied per-image)
+import scipy.ndimage as ndi
+
+def perturb_low_light(img):
+    """img: float32 HxWx3 in [0,1]"""
+    return np.clip(img * 0.3, 0.0, 1.0)
+
+def perturb_occlusion(img, frac=0.35, seed=0):
+    h, w = img.shape[:2]
+    s = int(min(h, w) * frac)
+    rng = np.random.RandomState(seed)
+    sx = rng.randint(0, w - s)
+    sy = rng.randint(0, h - s)
+    out = img.copy()
+    out[sy:sy+s, sx:sx+s, :] = 0.0
+    return out
+
+def perturb_rotate(img, deg=25.0):
+    return np.clip(ndi.rotate(img, deg, axes=(0, 1), reshape=False, mode='nearest'), 0.0, 1.0)
+
+def perturb_sunglasses(img):
+    h, w = img.shape[:2]
+    y0, y1 = int(h * 0.30), int(h * 0.55)
+    out = img.copy()
+    out[y0:y1, :, :] = 0.0
+    return out
+
+def perturb_noise(img, sigma=25.0/255.0, seed=0):
+    rng = np.random.RandomState(seed)
+    return np.clip(img + rng.normal(0.0, sigma, img.shape).astype(np.float32), 0.0, 1.0)
+
+PERTURBATIONS = {
+    'Clean (reference)': None,
+    'Low light':         perturb_low_light,
+    'Occlusion 35%':     lambda x: perturb_occlusion(x, frac=0.35, seed=SEED),
+    'Rotation +25°':     lambda x: perturb_rotate(x, 25.0),
+    'Sunglasses':        perturb_sunglasses,
+    'Noise σ=25/255':    lambda x: perturb_noise(x, sigma=25.0/255.0, seed=SEED),
+}
+print(f'✓ {len(PERTURBATIONS)} perturbations defined')
