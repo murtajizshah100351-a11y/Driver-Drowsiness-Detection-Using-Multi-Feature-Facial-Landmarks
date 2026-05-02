@@ -1,0 +1,27 @@
+# A4.3 — Visualize a few perturbed examples and the robustness drop
+fig, axes = plt.subplots(2, len(PERTURBATIONS), figsize=(3.0*len(PERTURBATIONS), 6.5))
+
+# Top row: example perturbed image
+sample_path = df_test.iloc[0]['filepath']
+img_clean = load_image_numpy(sample_path)
+for ax, (label, fn) in zip(axes[0], PERTURBATIONS.items()):
+    img = img_clean if fn is None else fn(img_clean)
+    ax.imshow(np.clip(img, 0, 1))
+    ax.set_title(label, fontsize=10)
+    ax.axis('off')
+
+# Bottom row: collapse to a single accuracy bar chart
+ax = plt.subplot(2, 1, 2)
+labels = robust_df['Model'].tolist()
+accs   = robust_df['Accuracy'].tolist()
+colors = ['#2ecc71' if 'Clean' in l else '#e74c3c' for l in labels]
+bars = ax.bar(labels, accs, color=colors)
+for b, v in zip(bars, accs):
+    ax.text(b.get_x()+b.get_width()/2, v+0.01, f'{v:.3f}', ha='center', fontsize=10)
+ax.set_ylim(0, 1.05); ax.set_ylabel('Accuracy')
+ax.set_title('Ensemble robustness — accuracy under each perturbation')
+ax.grid(axis='y', alpha=0.3)
+plt.setp(ax.get_xticklabels(), rotation=15, ha='right')
+plt.tight_layout()
+plt.savefig('A4_robustness_chart.png', dpi=100, bbox_inches='tight')
+plt.show()
