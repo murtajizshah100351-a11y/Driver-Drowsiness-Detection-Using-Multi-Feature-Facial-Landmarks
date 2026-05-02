@@ -1,0 +1,28 @@
+# A6.1 — Feature-group ablation
+# We use Random Forest as the probe (fast, doesn't require retraining the CNN)
+# to isolate the contribution of each feature subset on top of the CNN signal.
+GROUP_INDICES = {
+    'All 7 features':        list(range(7)),
+    'Without Eye group':     [3, 4, 5, 6],          # drop EAR_L, EAR_R, EAR_avg
+    'Without Mouth group':   [0, 1, 2, 4, 5, 6],    # drop MAR
+    'Without Pose group':    [0, 1, 2, 3],          # drop pitch, yaw, roll
+    'Eye group only':        [0, 1, 2],
+    'Mouth group only':      [3],
+    'Pose group only':       [4, 5, 6],
+}
+
+group_rows = []
+for label, idx in GROUP_INDICES.items():
+    feats_tr_sub  = feats_tr_n[:, idx]
+    feats_te_sub  = feats_te_n[:, idx]
+    rf_g = RandomForestClassifier(n_estimators=300, max_depth=15,
+                                  class_weight='balanced',
+                                  random_state=SEED, n_jobs=-1)
+    rf_g.fit(feats_tr_sub, df_tr['label'])
+    p_g = rf_g.predict_proba(feats_te_sub)[:, 1]
+    m, _ = full_metrics(y_true_test, p_g, label)
+    group_rows.append(m)
+    print(f"{label:25s}  Acc={m['Accuracy']:.4f}  F1={m['F1']:.4f}  AUC={m['AUC-ROC']:.4f}")
+
+group_df = pd.DataFrame(group_rows).round(4)
+group_df.to_csv('A6_feature_group_ablation.csv', index=False)
