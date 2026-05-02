@@ -1,0 +1,26 @@
+# A7.1 — Identify FP and FN examples, with confidence
+y_pred_ens = (prob_ens >= 0.5).astype(int)
+errors = pd.DataFrame({
+    'idx':       np.arange(len(y_true_test)),
+    'filepath':  df_test['filepath'].values,
+    'true':      y_true_test,
+    'pred':      y_pred_ens,
+    'prob':      prob_ens,
+    'face_det':  det_te,
+})
+errors['error_type'] = 'correct'
+errors.loc[(errors['true']==0) & (errors['pred']==1), 'error_type'] = 'FP (false alarm)'
+errors.loc[(errors['true']==1) & (errors['pred']==0), 'error_type'] = 'FN (missed drowsy — CRITICAL)'
+
+# Confidence is distance from boundary
+errors['confidence'] = np.abs(prob_ens - 0.5) * 2
+
+n_fp = (errors['error_type'] == 'FP (false alarm)').sum()
+n_fn = (errors['error_type'] == 'FN (missed drowsy — CRITICAL)').sum()
+print(f'False positives: {n_fp}  ({100*n_fp/len(errors):.1f}% of test set)')
+print(f'False negatives: {n_fn}  ({100*n_fn/len(errors):.1f}% of test set)  ← safety-critical')
+
+# Most dangerous: high-confidence FNs
+critical = errors[errors['error_type'] == 'FN (missed drowsy — CRITICAL)'].sort_values('confidence', ascending=False)
+print(f'\nTop 8 most-confident missed drowsy cases (the most dangerous failures):')
+print(critical[['filepath', 'prob', 'confidence', 'face_det']].head(8).to_string(index=False))
