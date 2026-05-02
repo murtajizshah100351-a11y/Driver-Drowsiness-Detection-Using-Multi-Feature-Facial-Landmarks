@@ -1,0 +1,19 @@
+# A1.1 — Filepath duplicates between splits
+tr_paths  = set(df_tr['filepath'])
+val_paths = set(df_val['filepath'])
+te_paths  = set(df_test['filepath'])
+
+dup_tr_val  = tr_paths  & val_paths
+dup_tr_te   = tr_paths  & te_paths
+dup_val_te  = val_paths & te_paths
+
+print('═'*60)
+print('CHECK 1 — Exact filepath overlap between splits')
+print('═'*60)
+print(f'Train ∩ Val  : {len(dup_tr_val)}')
+print(f'Train ∩ Test : {len(dup_tr_te)}')
+print(f'Val   ∩ Test : {len(dup_val_te)}')
+if len(dup_tr_val) + len(dup_tr_te) + len(dup_val_te) == 0:
+    print('✅  No filepath leakage between any pair of splits.')
+else:
+    print('⚠️  Leakage found — investigate before trusting results.')
