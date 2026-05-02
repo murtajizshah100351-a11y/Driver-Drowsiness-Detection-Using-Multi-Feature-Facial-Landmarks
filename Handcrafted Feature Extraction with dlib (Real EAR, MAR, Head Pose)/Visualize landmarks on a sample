@@ -1,16 +1,20 @@
-# Visualize landmarks on a sample
 def visualize_landmarks(path):
     img = cv2.imread(path)
+    if img is None:
+        return None
     gray = cv2.cvtColor(img, cv2.COLOR_BGR2GRAY)
     rect = detect_face_robust(gray)
-    if rect is None: return None
-    shape = PREDICTOR(gray, rect)
     vis = cv2.cvtColor(img, cv2.COLOR_BGR2RGB).copy()
-    cv2.rectangle(vis, (rect.left(), rect.top()), (rect.right(), rect.bottom()), (0, 255, 0), 2)
+    if rect is None:
+        return vis
+    shape = PREDICTOR(gray, rect)
+    cv2.rectangle(vis, (rect.left(), rect.top()),
+                       (rect.right(), rect.bottom()), (0, 255, 0), 2)
     for i in range(68):
         x, y = shape.part(i).x, shape.part(i).y
-        color = (255, 0, 0) if i in LEFT_EYE_IDX + RIGHT_EYE_IDX else \
-                (255, 255, 0) if i in MOUTH_OUTER + MOUTH_INNER else (0, 100, 255)
+        color = (255,   0,   0) if i in LEFT_EYE_IDX + RIGHT_EYE_IDX else \
+                (255, 255,   0) if i in MOUTH_OUTER + MOUTH_INNER     else \
+                (  0, 100, 255)
         cv2.circle(vis, (x, y), 2, color, -1)
     return vis
 
@@ -20,8 +24,10 @@ for ax, (_, row) in zip(axes, df_tr.sample(4, random_state=SEED).iterrows()):
     if vis is not None:
         ax.imshow(vis)
     ax.set_title('Drowsy' if row['label'] == 1 else 'Alert',
-                  color='red' if row['label'] == 1 else 'green')
+                 color='red' if row['label'] == 1 else 'green',
+                 fontsize=12)
     ax.axis('off')
+
 plt.suptitle('dlib 68-point landmarks: eyes (red), mouth (yellow), face (orange)', fontsize=12)
 plt.tight_layout()
 plt.savefig('02_landmark_viz.png', dpi=100, bbox_inches='tight')
