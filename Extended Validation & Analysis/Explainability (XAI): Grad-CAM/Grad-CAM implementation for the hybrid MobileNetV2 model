@@ -1,0 +1,33 @@
+# A9.1 — Grad-CAM implementation for the hybrid MobileNetV2 model
+def find_last_conv_layer(model):
+    for layer in reversed(model.layers):
+        if isinstance(layer, tf.keras.layers.Conv2D):
+            return layer.name
+        # Inside MobileNetV2 wrapper
+        if hasattr(layer, 'layers'):
+            for sub in reversed(layer.layers):
+                if isinstance(sub, tf.keras.layers.Conv2D):
+                    return sub.name
+    return None
+
+def grad_cam(model, img_tensor, feat_tensor, layer_name=None):
+    """Compute Grad-CAM heat-map for class 'drowsy' (output index 0, sigmoid)."""
+    if layer_name is None:
+        layer_name = find_last_conv_layer(model)
+    # Build a sub-model that returns BOTH the conv-layer activation AND the prediction
+    grad_model = tf.keras.models.Model(
+        inputs=model.inputs,
+        outputs=[model.get_layer(layer_name).output, model.output]
+    )
+    with tf.GradientTape() as tape:
+        conv_out, preds = grad_model([img_tensor, feat_tensor])
+        loss = preds[:, 0]  # sigmoid — single output
+    grads = tape.gradient(loss, conv_out)
+    pooled = tf.reduce_mean(grads, axis=(0, 1, 2))
+    conv_out = conv_out[0]
+    heat = tf.reduce_sum(conv_out * pooled, axis=-1)
+    heat = tf.maximum(heat, 0) / (tf.reduce_max(heat) + 1e-8)
+    return heat.numpy()
+
+LAYER = find_last_conv_layer(model_mnv2)
+print(f'Using layer for Grad-CAM: {LAYER}')
