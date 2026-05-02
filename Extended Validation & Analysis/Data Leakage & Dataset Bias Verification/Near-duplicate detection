@@ -1,0 +1,44 @@
+# A1.2 — Perceptual-hash near-duplicate detection
+# Catches the case where two near-identical frames (e.g., consecutive video frames)
+# end up split between train and test.
+import hashlib
+
+def phash_8x8(path):
+    """Tiny 64-bit average-hash. Fast and good enough to flag near-duplicates."""
+    img = cv2.imread(path, cv2.IMREAD_GRAYSCALE)
+    if img is None:
+        return None
+    img = cv2.resize(img, (8, 8), interpolation=cv2.INTER_AREA)
+    avg = img.mean()
+    bits = (img > avg).flatten()
+    return int(''.join('1' if b else '0' for b in bits), 2)
+
+print('Computing perceptual hashes...')
+hashes_tr = {p: phash_8x8(p) for p in tqdm(df_tr['filepath'].tolist(),  desc='train')}
+hashes_te = {p: phash_8x8(p) for p in tqdm(df_test['filepath'].tolist(), desc='test')}
+
+# Hamming distance ≤ 4 (out of 64 bits) → near-duplicate
+def hamming(a, b):
+    return bin(a ^ b).count('1') if (a is not None and b is not None) else 64
+
+set_tr = list(set(h for h in hashes_tr.values() if h is not None))
+near_dup_count = 0
+for h_te in hashes_te.values():
+    if h_te is None: continue
+    for h_tr in set_tr:
+        if hamming(h_te, h_tr) <= 4:
+            near_dup_count += 1
+            break
+
+print()
+print('═'*60)
+print('CHECK 2 — Near-duplicate frames (perceptual-hash, dist ≤ 4)')
+print('═'*60)
+print(f'Test images with a near-duplicate in train: {near_dup_count} / {len(hashes_te)}'
+      f' ({100*near_dup_count/len(hashes_te):.1f}%)')
+if near_dup_count / len(hashes_te) < 0.05:
+    print('✅  Low near-duplicate rate — splits are reasonably independent.')
+else:
+    print(f'⚠️  {100*near_dup_count/len(hashes_te):.1f}% test images have near-duplicates in train.')
+    print('    This is the most likely source of optimistic test scores.')
+    print('    Recommendation: re-split at the video / subject level if metadata is available.')
