@@ -1,0 +1,32 @@
+# A8.3 — Visualize sample frames + accuracy under domain shift
+fig, axes = plt.subplots(2, len(DOMAIN_PERTURBATIONS), figsize=(3.0*len(DOMAIN_PERTURBATIONS), 6.5))
+sample_path = df_test.iloc[0]['filepath']
+img_clean = load_image_numpy(sample_path)
+for ax, (label, fn) in zip(axes[0], DOMAIN_PERTURBATIONS.items()):
+    img = img_clean if fn is None else fn(img_clean)
+    ax.imshow(np.clip(img, 0, 1))
+    ax.set_title(label, fontsize=9); ax.axis('off')
+
+ax = plt.subplot(2, 1, 2)
+labels = domain_df['Model'].tolist()
+accs   = domain_df['Accuracy'].tolist()
+colors = ['#2ecc71' if 'Clean' in l else '#3498db' for l in labels]
+bars = ax.bar(labels, accs, color=colors)
+for b, v in zip(bars, accs):
+    ax.text(b.get_x()+b.get_width()/2, v+0.01, f'{v:.3f}', ha='center', fontsize=10)
+ax.set_ylim(0, 1.05); ax.set_ylabel('Accuracy')
+ax.set_title('Ensemble accuracy under simulated camera & environment shifts')
+ax.grid(axis='y', alpha=0.3)
+plt.setp(ax.get_xticklabels(), rotation=15, ha='right')
+plt.tight_layout()
+plt.savefig('A8_domain_shift.png', dpi=100, bbox_inches='tight')
+plt.show()
+
+combined_drop = clean_acc - domain_df.iloc[-1]['Accuracy']
+print(f'\nCombined "in-car" pipeline drop: {combined_drop:.4f} ({100*combined_drop:.2f}%-pts)')
+if combined_drop < 0.05:
+    print('✅  Model holds up under realistic deployment shifts.')
+elif combined_drop < 0.15:
+    print('⚠️  Moderate drop — consider domain-augmented retraining for production.')
+else:
+    print('🔴  Significant drop — production deployment would need targeted training data.')
