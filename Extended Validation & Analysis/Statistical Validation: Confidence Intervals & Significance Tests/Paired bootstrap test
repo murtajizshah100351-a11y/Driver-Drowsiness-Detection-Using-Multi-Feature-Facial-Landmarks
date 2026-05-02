@@ -1,0 +1,40 @@
+# A3.2 — Paired bootstrap test: ensemble vs each baseline
+def paired_bootstrap_test(y_true, p_a, p_b, metric_fn, n_boot=1000, seed=SEED):
+    """Test whether p_a is significantly different from p_b (paired on test items)."""
+    rng = np.random.RandomState(seed)
+    n = len(y_true)
+    diffs = []
+    for _ in range(n_boot):
+        idx = rng.randint(0, n, n)
+        y_t = y_true[idx]
+        if len(np.unique(y_t)) < 2:
+            continue
+        try:
+            diffs.append(metric_fn(y_t, p_a[idx]) - metric_fn(y_t, p_b[idx]))
+        except ValueError:
+            continue
+    diffs = np.array(diffs)
+    # Two-sided p-value: probability that the observed mean is on the wrong side of 0
+    p_two = 2 * min((diffs <= 0).mean(), (diffs >= 0).mean())
+    return diffs.mean(), np.percentile(diffs, 2.5), np.percentile(diffs, 97.5), p_two
+
+ens_prob = ALL_PROBS['Ensemble (Final)']
+sig_rows = []
+for name, prob in ALL_PROBS.items():
+    if name == 'Ensemble (Final)':
+        continue
+    d, lo, hi, p = paired_bootstrap_test(y_true_test, ens_prob, prob, acc_metric)
+    sig_rows.append({
+        'Comparison':   f'Ensemble  vs  {name}',
+        'Δ Accuracy':   f'{d:+.4f}',
+        '95% CI':       f'[{lo:+.4f}, {hi:+.4f}]',
+        'p-value':      f'{p:.4f}',
+        'significant':  '✓' if p < 0.05 else '–',
+    })
+
+sig_df = pd.DataFrame(sig_rows)
+print('═'*100)
+print('PAIRED BOOTSTRAP TEST — Ensemble vs each baseline (Δ accuracy on test set)')
+print('═'*100)
+print(sig_df.to_string(index=False))
+sig_df.to_csv('A3_paired_bootstrap.csv', index=False)
