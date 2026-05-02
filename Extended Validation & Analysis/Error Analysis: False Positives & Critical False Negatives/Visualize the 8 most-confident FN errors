@@ -1,0 +1,34 @@
+# A7.2 — Visualize the 8 most-confident FN errors
+def show_errors(error_df, title, max_n=8):
+    n = min(len(error_df), max_n)
+    if n == 0:
+        print(f'No examples for: {title}')
+        return
+    cols = 4
+    rows = (n + cols - 1) // cols
+    fig, axes = plt.subplots(rows, cols, figsize=(cols*3.2, rows*3.5))
+    axes = np.atleast_2d(axes).reshape(-1)
+    for i, (_, r) in enumerate(error_df.head(n).iterrows()):
+        img = cv2.imread(r['filepath'])
+        if img is None: continue
+        axes[i].imshow(cv2.cvtColor(img, cv2.COLOR_BGR2RGB))
+        axes[i].set_title(f"true={'D' if r['true']==1 else 'A'}, pred={'D' if r['pred']==1 else 'A'}\n"
+                           f"prob={r['prob']:.2f}, face={'✓' if r['face_det'] else '✗'}",
+                           fontsize=9)
+        axes[i].axis('off')
+    for j in range(n, len(axes)):
+        axes[j].axis('off')
+    plt.suptitle(title, fontsize=12)
+    plt.tight_layout()
+    return fig
+
+fig = show_errors(critical, 'CRITICAL FNs — drowsy drivers the model missed (high confidence)', max_n=8)
+if fig is not None:
+    plt.savefig('A7_critical_FN.png', dpi=100, bbox_inches='tight')
+    plt.show()
+
+fp_sorted = errors[errors['error_type'] == 'FP (false alarm)'].sort_values('confidence', ascending=False)
+fig = show_errors(fp_sorted, 'High-confidence FPs — alert drivers wrongly flagged drowsy', max_n=8)
+if fig is not None:
+    plt.savefig('A7_high_conf_FP.png', dpi=100, bbox_inches='tight')
+    plt.show()
