@@ -1,0 +1,35 @@
+# A3.3 — McNemar's test (paired classifier comparison)
+from scipy.stats import binomtest
+
+def mcnemar(y_true, pred_a, pred_b):
+    """Exact McNemar — recommended over chi-square when discordant pairs are few."""
+    a_correct = (pred_a == y_true)
+    b_correct = (pred_b == y_true)
+    n01 = ((~a_correct) & ( b_correct)).sum()  # A wrong, B right
+    n10 = (( a_correct) & (~b_correct)).sum()  # A right, B wrong
+    if n01 + n10 == 0:
+        return 1.0, n01, n10
+    p = binomtest(min(n01, n10), n01 + n10, 0.5).pvalue
+    return p, n01, n10
+
+ens_pred = (ens_prob >= 0.5).astype(int)
+mc_rows = []
+for name, prob in ALL_PROBS.items():
+    if name == 'Ensemble (Final)':
+        continue
+    p_pred = (prob >= 0.5).astype(int)
+    p_val, n01, n10 = mcnemar(y_true_test, ens_pred, p_pred)
+    mc_rows.append({
+        'vs Baseline':   name,
+        'Ens-right / Base-wrong':  n10,
+        'Base-right / Ens-wrong':  n01,
+        'McNemar p':              f'{p_val:.4f}',
+        'significant':            '✓' if p_val < 0.05 else '–',
+    })
+
+mc_df = pd.DataFrame(mc_rows)
+print('═'*90)
+print('McNEMAR TEST — Ensemble vs each baseline')
+print('═'*90)
+print(mc_df.to_string(index=False))
+mc_df.to_csv('A3_mcnemar.csv', index=False)
