@@ -1,0 +1,27 @@
+# A5.4 — Selective prediction: accuracy after abstaining on least-confident k%
+abstain_pcts = [0, 10, 20, 30, 40, 50]
+sel_rows = []
+abs_conf = np.abs(prob_ens - 0.5)  # distance from decision boundary
+for k in abstain_pcts:
+    if k == 0:
+        keep = np.ones(len(prob_ens), dtype=bool)
+    else:
+        cutoff = np.percentile(abs_conf, k)
+        keep = abs_conf >= cutoff
+    pred = (prob_ens[keep] >= 0.5).astype(int)
+    if keep.sum() > 0 and len(np.unique(y_true_test[keep])) > 1:
+        sel_rows.append({
+            'Abstain %':       k,
+            'Coverage':        f'{keep.mean()*100:.1f}%',
+            'Accuracy on kept': f'{accuracy_score(y_true_test[keep], pred):.4f}',
+            'F1 on kept':       f'{f1_score(y_true_test[keep], pred, zero_division=0):.4f}',
+        })
+
+sel_df = pd.DataFrame(sel_rows)
+print('═'*70)
+print('SELECTIVE PREDICTION — accuracy if model abstains on its least confident k%')
+print('═'*70)
+print(sel_df.to_string(index=False))
+sel_df.to_csv('A5_selective_prediction.csv', index=False)
+print('\nIn deployment: when |proba - 0.5| is small, fall back to a longer observation')
+print('window or a second sensor instead of triggering an alarm.')
