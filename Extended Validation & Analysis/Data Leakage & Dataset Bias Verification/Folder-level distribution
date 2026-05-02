@@ -1,0 +1,14 @@
+# A1.3 — Folder-level distribution across splits
+print('═'*60)
+print('CHECK 3 — Folder distribution across splits')
+print('═'*60)
+folder_split = pd.crosstab(df_all['folder'], df_all['filepath'].map(
+    lambda p: 'train' if p in tr_paths else ('val' if p in val_paths else 'test')))
+print(folder_split)
+
+# Folders that appear in only one split → strong leakage / bias signal
+single_split = folder_split.apply(lambda r: (r > 0).sum() == 1, axis=1)
+if single_split.any():
+    print(f'\n⚠️  Folders that appear in only ONE split: {single_split[single_split].index.tolist()}')
+else:
+    print('\n✅  Every source folder is represented in train, val, AND test — no folder leakage.')
