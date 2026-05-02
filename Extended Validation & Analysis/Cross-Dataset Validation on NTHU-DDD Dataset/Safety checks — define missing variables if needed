@@ -1,0 +1,51 @@
+# ── Safety checks — define missing variables if needed ───────────────
+if 'DATA_NAME' not in globals():
+    DATA_NAME = str(DATA_PATH)
+    print(f'⚠️  DATA_NAME not found — using DATA_PATH as label: {DATA_NAME}')
+else:
+    print(f'✅  DATA_NAME = {DATA_NAME}')
+
+if 'SEC_NAME' not in globals() or SEC_NAME is None:
+    SEC_NAME = str(SEC_PATH)
+    print(f'⚠️  SEC_NAME not found — using SEC_PATH as label: {SEC_NAME}')
+else:
+    print(f'✅  SEC_NAME  = {SEC_NAME}')
+
+if 'res_ens' not in globals():
+    print('⚠️  res_ens not found — in-domain accuracy will show as N/A')
+    res_ens = {'Accuracy': float('nan')}
+else:
+    print(f'✅  res_ens Accuracy = {res_ens["Accuracy"]:.4f}')
+
+
+# ── Run cross-dataset evaluation ──────────────────────────────────────
+cross_results = None
+if SEC_PATH is not None:
+    result = eval_on_secondary(SEC_PATH, SEC_NAME)
+    if result is not None:
+        cross_results, df_sec_used, prob_ens_sec = result
+
+        print('\n' + '='*62)
+        print('CROSS-DATASET EVALUATION')
+        print(f'  Trained on:  {DATA_NAME}')
+        print(f'  Tested on:   {SEC_NAME}')
+        print('='*62)
+        print(cross_results.to_string(index=False))
+        cross_results.to_csv('A2_cross_dataset_results.csv', index=False)
+
+        # Generalization gap
+        in_acc  = res_ens['Accuracy']
+        out_acc = cross_results.iloc[-1]['Accuracy']
+
+        print(f'\n  In-domain accuracy:     {in_acc:.4f}')
+        print(f'  Out-of-domain accuracy: {out_acc:.4f}')
+
+        if not (isinstance(in_acc, float) and
+                isinstance(out_acc, float) and
+                in_acc == in_acc and
+                out_acc == out_acc):
+            print('  Generalization gap:     N/A (in-domain result missing)')
+        else:
+            print(f'  Generalization gap:     {in_acc - out_acc:+.4f}')
+else:
+    print('⚠️  SEC_PATH is None — skipping cross-dataset evaluation.')
