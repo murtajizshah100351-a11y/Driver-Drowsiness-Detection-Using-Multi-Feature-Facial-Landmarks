@@ -1,0 +1,41 @@
+# A4.2 — Manual batched evaluation under each perturbation
+# Avoids tf.data graph-mode issues by loading + perturbing in numpy, then predicting.
+def load_image_numpy(path):
+    img = tf.io.read_file(path)
+    img = tf.image.decode_image(img, channels=3, expand_animations=False)
+    img = tf.image.resize(img, [IMG_SIZE, IMG_SIZE])
+    return (img.numpy() / 255.0).astype(np.float32)
+
+def predict_perturbed(perturb_fn, batch_size=32):
+    """Return ensemble probabilities on the test set under perturb_fn."""
+    n = len(df_test)
+    probs_m = np.zeros(n, dtype=np.float32)
+    probs_e = np.zeros(n, dtype=np.float32)
+    paths   = df_test['filepath'].values
+    for start in range(0, n, batch_size):
+        end = min(start + batch_size, n)
+        imgs = []
+        for p in paths[start:end]:
+            img = load_image_numpy(p)
+            if perturb_fn is not None:
+                img = perturb_fn(img)
+            imgs.append(img.astype(np.float32))
+        batch_imgs  = np.stack(imgs)
+        batch_feats = feats_te_n[start:end]
+        probs_m[start:end] = model_mnv2.predict([batch_imgs, batch_feats], verbose=0).ravel()
+        probs_e[start:end] = model_effb0.predict([batch_imgs, batch_feats], verbose=0).ravel()
+    return w_m * probs_m + w_e * probs_e
+
+robust_rows = []
+clean_acc_ref = res_ens['Accuracy']
+for label, fn in PERTURBATIONS.items():
+    pe = predict_perturbed(fn)
+    m, _ = full_metrics(y_true_test, pe, label)
+    m['ΔAcc'] = m['Accuracy'] - clean_acc_ref
+    robust_rows.append(m)
+    print(f"{label:22s}  Acc={m['Accuracy']:.4f}  F1={m['F1']:.4f}  ΔAcc={m['ΔAcc']:+.4f}")
+
+robust_df = pd.DataFrame(robust_rows).round(4)
+robust_df.to_csv('A4_robustness_results.csv', index=False)
+print()
+print(robust_df.to_string(index=False))
