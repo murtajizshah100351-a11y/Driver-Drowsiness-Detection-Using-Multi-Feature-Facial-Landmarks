@@ -1,0 +1,31 @@
+# A5.1 & A5.2 — Confidence histogram by class and Reliability Curve
+fig, axes = plt.subplots(1, 2, figsize=(14, 4.5))
+
+ax = axes[0]
+ax.hist(prob_ens[y_true_test == 0], bins=30, alpha=0.6, color='green', label='True Alert')
+ax.hist(prob_ens[y_true_test == 1], bins=30, alpha=0.6, color='red',   label='True Drowsy')
+ax.axvline(0.5, color='black', ls='--', alpha=0.6, label='threshold 0.5')
+ax.set_xlabel('Predicted probability of Drowsy'); ax.set_ylabel('Count')
+ax.set_title('Confidence distribution by ground-truth class')
+ax.legend(); ax.grid(alpha=0.3)
+
+# §A5.2 — Reliability curve
+from sklearn.calibration import calibration_curve
+ax = axes[1]
+for name, prob in [('Ensemble', prob_ens),
+                   ('Hybrid MNv2', prob_mnv2),
+                   ('Hybrid EffB0', prob_effb0)]:
+    frac, mean = calibration_curve(y_true_test, prob, n_bins=10, strategy='quantile')
+    ax.plot(mean, frac, 'o-', label=name)
+ax.plot([0, 1], [0, 1], 'k--', alpha=0.4, label='perfect calibration')
+ax.set_xlabel('Mean predicted probability (per bin)')
+ax.set_ylabel('Empirical fraction Drowsy')
+ax.set_title('Reliability curve — calibration')
+ax.legend(); ax.grid(alpha=0.3)
+
+plt.tight_layout()
+plt.savefig('A5_calibration.png', dpi=100, bbox_inches='tight')
+plt.show()
+
+print(f'Brier score (lower = better): {brier_score_loss(y_true_test, prob_ens):.4f}')
+print(f'ECE (lower = better):         {expected_calibration_error(y_true_test, prob_ens):.4f}')
