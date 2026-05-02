@@ -1,0 +1,16 @@
+# Run this FIRST to see exact structure
+import pathlib
+
+local_path = '/kaggle/input/nthu-dataset-ddd-multi-class'
+
+print("Full folder tree (3 levels deep):")
+for p in sorted(pathlib.Path(local_path).rglob('*')):
+    depth = len(p.relative_to(local_path).parts)
+    if depth <= 3 and p.is_dir():
+        print('  ' * depth + f'📁 {p.name}')
+
+# Also show a few sample filepaths
+print("\nSample filepaths:")
+for i, fp in enumerate(pathlib.Path(local_path).rglob('*.jpg')):
+    print(f"  {fp}")
+    if i >= 10: break
