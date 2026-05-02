@@ -1,0 +1,28 @@
+# A7.3 — Are FN errors disproportionately on images where dlib failed?
+fail_rate_fn = critical['face_det'].mean() if len(critical) else float('nan')
+fail_rate_correct = errors[errors['error_type']=='correct']['face_det'].mean()
+print('═'*65)
+print('IS dlib FAILURE A PREDICTOR OF CRITICAL ERRORS?')
+print('═'*65)
+print(f'Face-detection rate among CORRECT predictions: {100*fail_rate_correct:.1f}%')
+print(f'Face-detection rate among critical FNs:        {100*fail_rate_fn:.1f}%')
+if not np.isnan(fail_rate_fn) and fail_rate_fn < fail_rate_correct - 0.05:
+    print('\n⚠️  When dlib fails, the model loses its handcrafted EAR/MAR signal and'
+          ' relies on the CNN alone, which over-predicts "alert".')
+    print('     Mitigation: weight the CNN-only branch differently when dlib fails,'
+          ' or fall back to a temporal model.')
+
+# Confidence histogram of correct vs FN — are FNs at least low-confidence?
+fig, ax = plt.subplots(figsize=(9, 4))
+ax.hist(errors[errors.error_type=='correct']['prob'].values,
+        bins=30, alpha=0.5, color='gray', label='correct', density=True)
+if len(critical):
+    ax.hist(critical['prob'].values, bins=15, alpha=0.7, color='red',
+            label='FN (missed drowsy)', density=True)
+ax.axvline(0.5, color='black', ls='--')
+ax.set_xlabel('Predicted probability of Drowsy'); ax.set_ylabel('Density')
+ax.set_title('Confidence distribution: correct vs critical FN')
+ax.legend(); ax.grid(alpha=0.3)
+plt.tight_layout()
+plt.savefig('A7_FN_confidence.png', dpi=100, bbox_inches='tight')
+plt.show()
