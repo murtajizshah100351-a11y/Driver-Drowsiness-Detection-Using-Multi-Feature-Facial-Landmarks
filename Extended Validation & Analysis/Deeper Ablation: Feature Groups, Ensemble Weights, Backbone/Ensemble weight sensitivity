@@ -1,0 +1,32 @@
+# A6.2 — Ensemble weight sensitivity
+weights_m = np.linspace(0.0, 1.0, 21)
+ens_accs, ens_f1s, ens_aucs = [], [], []
+for w in weights_m:
+    pe = w * prob_mnv2 + (1 - w) * prob_effb0
+    pred = (pe >= 0.5).astype(int)
+    ens_accs.append(accuracy_score(y_true_test, pred))
+    ens_f1s.append(f1_score(y_true_test, pred, zero_division=0))
+    ens_aucs.append(roc_auc_score(y_true_test, pe))
+
+fig, ax = plt.subplots(figsize=(10, 5))
+ax.plot(weights_m, ens_accs, 'o-', label='Accuracy')
+ax.plot(weights_m, ens_f1s,  'o-', label='F1')
+ax.plot(weights_m, ens_aucs, 'o-', label='AUC')
+ax.axvline(w_m, color='red', ls='--', alpha=0.6, label=f'auto-weight w_m={w_m:.2f}')
+ax.axvline(0.5, color='gray', ls=':', alpha=0.6, label='naïve 50/50')
+ax.set_xlabel('Weight on MobileNetV2 (1 − weight on EfficientNetB0)')
+ax.set_ylabel('Score')
+ax.set_title('Ensemble weight sensitivity — Final Ensemble')
+ax.legend(); ax.grid(alpha=0.3)
+plt.tight_layout()
+plt.savefig('A6_weight_sensitivity.png', dpi=100, bbox_inches='tight')
+plt.show()
+
+# Plateau check — is the ensemble robust across weight choices?
+acc_range = max(ens_accs) - min(ens_accs)
+print(f'Accuracy range across all weight choices: {acc_range:.4f}')
+if acc_range < 0.01:
+    print('✅  Ensemble is INSENSITIVE to the exact weight — both backbones contribute robustly.')
+else:
+    print(f'⚠️  Ensemble accuracy varies by {acc_range:.4f} across weights;'
+          ' the chosen weighting matters.')
