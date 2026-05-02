@@ -1,0 +1,35 @@
+# A5.3 — Threshold sensitivity sweep
+thresholds = np.linspace(0.05, 0.95, 19)
+prec_arr, rec_arr, fpr_arr, f1_arr = [], [], [], []
+for t in thresholds:
+    pred = (prob_ens >= t).astype(int)
+    cm   = confusion_matrix(y_true_test, pred)
+    if cm.size == 4:
+        tn, fp, fn, tp = cm.ravel()
+    else:
+        tn=fp=fn=tp=0
+    prec_arr.append(tp / max(tp+fp, 1))
+    rec_arr.append(tp / max(tp+fn, 1))
+    fpr_arr.append(fp / max(fp+tn, 1))
+    f1_arr.append(f1_score(y_true_test, pred, zero_division=0))
+
+fig, ax = plt.subplots(figsize=(10, 5))
+ax.plot(thresholds, prec_arr, 'o-', label='Precision (1 - false alarm rate)', color='#2ecc71')
+ax.plot(thresholds, rec_arr,  'o-', label='Recall (catch rate for drowsy)',   color='#e74c3c')
+ax.plot(thresholds, fpr_arr,  'o-', label='False Positive Rate',              color='#e67e22')
+ax.plot(thresholds, f1_arr,   'o-', label='F1',                               color='#9b59b6')
+ax.axvline(0.5, color='gray', ls='--', alpha=0.5)
+ax.set_xlabel('Decision threshold'); ax.set_ylabel('Score')
+ax.set_title('Threshold sensitivity — Final Ensemble')
+ax.legend(); ax.grid(alpha=0.3)
+plt.tight_layout()
+plt.savefig('A5_threshold_sweep.png', dpi=100, bbox_inches='tight')
+plt.show()
+
+# Best operating point (max F1)
+best_idx = int(np.argmax(f1_arr))
+print(f'Best threshold by F1: {thresholds[best_idx]:.2f}'
+      f'  Precision={prec_arr[best_idx]:.3f}  Recall={rec_arr[best_idx]:.3f}  F1={f1_arr[best_idx]:.3f}')
+print(f'\nFor a SAFETY system you typically prefer high recall → push threshold to ~0.30:')
+idx_safe = int(np.argmin(np.abs(thresholds - 0.30)))
+print(f'  At t=0.30:  Precision={prec_arr[idx_safe]:.3f}  Recall={rec_arr[idx_safe]:.3f}  FPR={fpr_arr[idx_safe]:.3f}')
