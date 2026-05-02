@@ -1,0 +1,12 @@
+# A8.2 — Evaluate ensemble under each domain shift
+domain_rows = []
+clean_acc = res_ens['Accuracy']
+for label, fn in DOMAIN_PERTURBATIONS.items():
+    pe = predict_perturbed(fn)  # reuses the helper from §A4.2
+    m, _ = full_metrics(y_true_test, pe, label)
+    m['ΔAcc'] = m['Accuracy'] - clean_acc
+    domain_rows.append(m)
+    print(f"{label:30s}  Acc={m['Accuracy']:.4f}  ΔAcc={m['ΔAcc']:+.4f}")
+
+domain_df = pd.DataFrame(domain_rows).round(4)
+domain_df.to_csv('A8_domain_shift_results.csv', index=False)
